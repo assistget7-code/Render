@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PodStream Global - Vote for Your Favorite Podcasts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg-color:#050508;--primary:#8e2de2;--secondary:#4a00e0;--accent:#00ffcc;--text-light:#fff;--text-muted:#a0a0b0;--glass-bg:rgba(20,20,25,.4);--glass-border:rgba(255,255,255,.08);--glass-shadow:0 8px 32px 0 rgba(0,0,0,.5)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Outfit',sans-serif}
+body{background:var(--bg-color);color:var(--text-light);overflow-x:hidden;line-height:1.6}
+.ambient-bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-1;overflow:hidden;background:var(--bg-color)}
+.orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:.5;animation:float 20s infinite ease-in-out alternate}
+.orb-1{width:500px;height:500px;background:var(--primary);top:-100px;left:-100px}
+.orb-2{width:600px;height:600px;background:var(--secondary);bottom:-200px;right:-100px;animation-duration:25s;animation-direction:alternate-reverse}
+.orb-3{width:400px;height:400px;background:var(--accent);top:40%;left:50%;opacity:.2;animation-duration:15s}
+@keyframes float{0%{transform:translate(0,0) scale(1)}50%{transform:translate(50px,50px) scale(1.1)}100%{transform:translate(-30px,80px) scale(.9)}}
+.container{max-width:1200px;margin:0 auto;padding:40px 20px}
+header{text-align:center;padding:30px 0;margin-bottom:20px;animation:fadeInDown 1s ease-out}
+.logo{font-size:2.5rem;font-weight:900;background:linear-gradient(to right,var(--text-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px;text-transform:uppercase;text-decoration:none}
+.logo span{display:block;font-size:1rem;font-weight:400;letter-spacing:5px;color:var(--primary);-webkit-text-fill-color:var(--primary);margin-top:5px}
+.glass-panel{background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:24px;padding:50px;box-shadow:var(--glass-shadow)}
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:80px;animation:fadeInUp 1s ease-out .3s backwards}
+.hero h1{font-size:3.5rem;font-weight:800;margin-bottom:20px;line-height:1.1}
+.hero h1 .highlight{background:linear-gradient(135deg,var(--accent),var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:1.2rem;color:var(--text-muted);max-width:600px;margin:0 auto 40px}
+.voting-options{display:flex;flex-direction:column;gap:20px;width:100%;max-width:400px;margin:0 auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:18px 30px;border-radius:50px;text-decoration:none;font-weight:600;font-size:1.1rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-light);position:relative;z-index:1;overflow:hidden;transition:all .4s cubic-bezier(.175,.885,.32,1.275);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(45deg,var(--primary),var(--secondary));z-index:-1;opacity:0;transition:opacity .4s ease}
+.btn:hover{transform:translateY(-5px) scale(1.02);border-color:transparent;box-shadow:0 10px 30px rgba(142,45,226,.4)}
+.btn:hover::before{opacity:1}
+.btn-icon{margin-right:12px;font-size:1.4rem}
+.section-title{text-align:center;font-size:2.5rem;font-weight:800;margin-bottom:50px;background:linear-gradient(to right,#fff,var(--text-muted));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.grid-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:30px;margin-bottom:80px}
+.card{background:var(--glass-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-border);border-radius:20px;text-align:center;transition:all .4s ease;position:relative;overflow:hidden;animation:fadeInUp 1s ease-out .6s backwards;display:flex;flex-direction:column}
+.card-img-wrapper{width:100%;height:200px;overflow:hidden}
+.card-img{width:100%;height:200px;object-fit:cover;border-bottom:1px solid var(--glass-border);transition:transform .4s ease}
+.card:hover .card-img{transform:scale(1.05)}
+.card-content{padding:30px;flex-grow:1;display:flex;flex-direction:column;justify-content:space-between}
+.card::after{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--primary),transparent);opacity:0;transition:opacity .4s ease}
+.card:hover{transform:translateY(-10px);background:rgba(30,30,40,.6);border-color:rgba(255,255,255,.2);box-shadow:0 15px 40px rgba(0,0,0,.4),0 0 20px rgba(142,45,226,.2)}
+.card:hover::after{opacity:1}
+.card h3{font-size:1.4rem;margin-bottom:15px;color:var(--text-light)}
+.card .stats{display:flex;flex-direction:column;gap:10px;align-items:center}
+.stat-item{display:flex;justify-content:space-between;width:100%;font-size:.9rem;background:rgba(0,0,0,.2);padding:8px 15px;border-radius:8px}
+.stat-item span:first-child{color:var(--text-muted)}
+.stat-item span:last-child{color:var(--accent);font-weight:600}
+.about-section{background:linear-gradient(to right,rgba(142,45,226,.1),rgba(0,255,204,.05));border-radius:24px;padding:60px;margin-bottom:80px;border:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden;display:flex;align-items:center;text-align:left;gap:40px}
+.about-img{width:40%;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.5);object-fit:cover}
+.about-content{width:60%}
+.about-section h2{font-size:2.2rem;margin-bottom:20px;color:#fff}
+.about-section p{color:var(--text-muted);font-size:1.1rem}
+footer{text-align:center;padding:40px 0;border-top:1px solid var(--glass-border);color:var(--text-muted);font-size:.9rem}
+footer p{margin-bottom:10px}
+@keyframes fadeInDown{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:768px){.hero h1{font-size:2.5rem}.glass-panel{padding:30px}.about-section{flex-direction:column;text-align:center;padding:40px 20px}.about-img,.about-content{width:100%}}
+</style>
+</head>
+<body>
+<div class="ambient-bg"><div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div></div>
+
+<div class="container">
+  <header>
+    <a href="#" class="logo">PodStream Global<span>Voting Platform</span></a>
+  </header>
+
+  <section class="hero glass-panel">
+    <h1>The Ultimate <span class="highlight">Google &amp; Spotify</span> Voting Platform</h1>
+    <p>Discover, vote, and engage with the world's best podcasts. Join millions of listeners in shaping the future of audio content right now.</p>
+    <div class="voting-options">
+      <a href="#" class="btn"><span class="btn-icon">✉️</span> Vote with Email</a>
+      <a href="#" class="btn"><span class="btn-icon">𝕏</span> Vote with X (Twitter)</a>
+    </div>
+  </section>
+
+  <h2 class="section-title">Featured Spotlights</h2>
+  <div class="grid-container">
+    <div class="card">
+      <div class="card-img-wrapper"><img class="card-img" src="https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=600" alt=""></div>
+      <div class="card-content">
+        <h3>Podcast Smith</h3>
+        <div class="stats">
+          <div class="stat-item"><span>Length</span><span>185 hours</span></div>
+          <div class="stat-item"><span>Locations</span><span>225</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-img-wrapper"><img class="card-img" src="https://i.ibb.co/fVTZ99Zm/new2.jpg" alt=""></div>
+      <div class="card-content">
+        <h3>Spotify Wall</h3>
+        <div class="stats">
+          <div class="stat-item"><span>Length</span><span>140 hours</span></div>
+          <div class="stat-item"><span>Crew</span><span>87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-img-wrapper"><img class="card-img" src="https://images.unsplash.com/photo-1589903308904-1010c2294adc?w=600" alt=""></div>
+      <div class="card-content">
+        <h3>Google Smith</h3>
+        <div class="stats">
+          <div class="stat-item"><span>Length</span><span>160 hours</span></div>
+          <div class="stat-item"><span>Regions</span><span>40</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-img-wrapper"><img class="card-img" src="https://i.ibb.co/27YyF6pN/new4.jpg" alt=""></div>
+      <div class="card-content">
+        <h3>Global Doe</h3>
+        <div class="stats">
+          <div class="stat-item"><span>Length</span><span>200 hours</span></div>
+          <div class="stat-item"><span>Host</span><span>Global</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="about-section">
+    <img class="about-img" src="https://images.unsplash.com/photo-1581368135153-a506cf13b1e1?w=800" alt="Collaboration">
+    <div class="about-content">
+      <h2>The Collaborative Ecosystem</h2>
+      <p>Spotify and Google have launched a collaborative podcast platform across all Global countries. Combining Spotify's elite audio streaming pipeline and Google's cutting-edge tech infrastructure, this platform empowers creators, supports fair monetization, and aims to enrich the Global podcast ecosystem by delivering highly diverse and readily accessible content.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 PodStream Global. All rights reserved.</p>
+    <p>Empowering podcast lovers worldwide.</p>
+  </footer>
+</div>
+</body>
+</html>
